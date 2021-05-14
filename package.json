@@ -6,6 +6,8 @@
   "author": "Yuri Yakovlev <hi@mynameisyuri.com> (https://mynameisyuri.com/)",
   "homepage": "https://github.com/yakovlevyuri/telegram-bot-boilerplate",
   "dependencies": {
+    "@terra-money/terra.js": "^1.7.0",
+    "axios": "^0.21.1",
     "dotenv-cli": "^2.0.1",
     "express": "^4.17.1",
     "telegraf": "^3.32.0"

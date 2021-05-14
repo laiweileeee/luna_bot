@@ -1,4 +1,5 @@
 import { author, homepage, name, version } from '../../../package.json';
+import { LCDClient, Coin } from '@terra-money/terra.js';
 
 const debug = require('debug')('bot:about_command');
 
