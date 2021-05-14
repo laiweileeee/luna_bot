@@ -66,7 +66,7 @@ const development = () => {
             `Current Luna-bLuna exchange rate is ~${rateInPercent} % 
                   \n10 Luna : ~${(10 * exchangeRate).toFixed(3)} bLuna
 `)
-      }, 30000);
+      }, 3000);
   };
 
 process.env.NODE_ENV === 'production' ? production() : development();
