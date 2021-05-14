@@ -6,10 +6,10 @@ import axios, {AxiosResponse} from 'axios';
 
 const debug = require('debug')('bot');
 
-const BOT_TOKEN = process.env.BOT_TOKEN || '';
-const USERNAME = process.env.USERNAME || '';
+const BOT_TOKEN = "1814835694:AAGQQRwGlwsYBCDqRjSI6twPdoTrs3z6iqo" || '';
+const USERNAME = "lunaER_bot" || '';
 const PORT = (process.env.PORT && parseInt(process.env.PORT, 10)) || 3000;
-const WEBHOOK_URL = `${process.env.WEBHOOK_URL}/bot${BOT_TOKEN}`;
+const WEBHOOK_URL = `443/bot${BOT_TOKEN}`;
 
 const bot = new Telegraf(BOT_TOKEN, { username: USERNAME });
 
