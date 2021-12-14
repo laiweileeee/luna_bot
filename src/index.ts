@@ -1,26 +1,33 @@
 import Telegraf from 'telegraf';
 
 import { about } from './commands';
-import { greeting } from './text';
-import axios, {AxiosResponse} from 'axios';
+import { LCDClient, Coin } from '@terra-money/terra.js';
+import {chatId, start} from "./commands/about";
 
 const debug = require('debug')('bot');
 
-const BOT_TOKEN = "1814835694:AAGQQRwGlwsYBCDqRjSI6twPdoTrs3z6iqo" || '';
+const terra = new LCDClient({
+    URL: 'https://lcd.terra.dev',
+    chainID: "columbus-4",
+});
+const contract = "terra1jxazgm67et0ce260kvrpfv50acuushpjsz2y0p";
+const BOT_TOKEN = "1937360032:AAFceAYayqZTgLPKfK94fUe42oxVc7lY-YE" || '';
 const USERNAME = "lunaER_bot" || '';
 const PORT = (process.env.PORT && parseInt(process.env.PORT, 10)) || 3000;
-const WEBHOOK_URL = `443/bot${BOT_TOKEN}`;
+const WEBHOOK_URL = `${process.env.WEBHOOK_URL}/bot${BOT_TOKEN}`;
 
 const bot = new Telegraf(BOT_TOKEN, { username: USERNAME });
 
-bot.command('about', about()).on('text', greeting());
+interface SimulationObject {
+    return_amount: string,
+    spread_amount: string,
+    commission_amount: string,
+}
+
+bot.command('start', start()).on('text', start());
+bot.command('test', about)
 
 const production = () => {
-  debug('Bot runs in production mode');
-  debug(`${USERNAME} setting webhook: ${WEBHOOK_URL}`);
-  bot.telegram.setWebhook(WEBHOOK_URL);
-  debug(`${USERNAME} starting webhook on port: ${PORT}`);
-  bot.startWebhook(`/bot${BOT_TOKEN}`, null, PORT);
 };
 
 const development = () => {
@@ -30,43 +37,64 @@ const development = () => {
   debug(`${USERNAME} starting polling`);
   bot.startPolling();
 
-  let exchangeRate = 0;
+  let exchangeRate: number = 0;
   let rateInPercent = '';
+  let prevMsg = '';
 
-  axios.get('https://lcd.terra.dev/wasm/contracts/terra1jxazgm67et0ce260kvrpfv50acuushpjsz2y0p/store?query_msg={%22pool%22:{}}')
-      .then((res: any) => {
-        // handle success
-        const lunaInPool = res.data.result.assets[0].amount;
-        const bLunaInPool = res.data.result.assets[1].amount;
+    const getExchangeRate = async () => {
+        try {
+            const result = await terra.wasm.contractQuery(
+                contract,
+                {
+                    "simulation": {
+                        "offer_asset": {
+                            "amount": (1 * 1000000).toString(),
+                            "info": {
+                                "native_token": {
+                                    "denom": "uluna"
+                                }
+                            }
+                        }
+                    }
+                }
+            )
 
-        //Exchange rate for luna : bLuna
-        exchangeRate = lunaInPool/bLunaInPool;
-        rateInPercent = ((exchangeRate - 1) * 100).toFixed(2);
+            const simObject = result as SimulationObject;
+            exchangeRate = (parseInt(simObject.return_amount)/ 1000000);
+            // console.log(exchangeRate)
+            // console.log(simObject);
 
-      })
-      .catch((error: string) => {
-        // handle error
-        console.log(error);
-      })
-      .then(() => {
-        // always executed
-        console.log("Get request made")
-      });
+            return exchangeRate;
+        } catch (error) {
+            console.error(error)
+        }
+    }
 
+    setInterval(() => {
+        getExchangeRate();
+        const newMsg = `Luna-bLuna exchange rate is ~${exchangeRate} %
+                  \n1 Luna : ~${(1 * exchangeRate).toFixed(4)} bLuna`;
 
-  setInterval(() => {
-        if (exchangeRate < 1) {
-          bot.telegram.sendMessage(
-              65823869,
-              `SWAP NOW !!!!! \nASDASFSFDSFGEWGFHFHFG`)
+        // send message only when rate changes
+        if (prevMsg != newMsg && chatId) {
+            bot.telegram.sendMessage(chatId, newMsg);
+            prevMsg = newMsg;
+
+            // send ALERT when its time to swap
+            if (exchangeRate < 1) {
+                bot.telegram.sendMessage(
+                    chatId,
+                    `🚨🚨🚨 Good time to get some FREE bLUNAs 🚨🚨🚨`)
+            }
         }
 
-        bot.telegram.sendMessage(
-            65823869,
-            `Current Luna-bLuna exchange rate is ~${rateInPercent} % 
-                  \n10 Luna : ~${(10 * exchangeRate).toFixed(3)} bLuna
-`)
-      }, 3000);
-  };
+        console.log('Time now is ', new Date());
+        console.log('prevMsg is ',prevMsg);
+        console.log('newMsg is ',newMsg);
+        console.log('-----------------------------------');
+    }, 5000)
+
+
+};
 
 process.env.NODE_ENV === 'production' ? production() : development();
